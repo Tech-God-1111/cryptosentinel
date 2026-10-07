@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CRYPTOSENTINEL — Threat Dashboard</title>
+<link rel="stylesheet" href="/static/assets/style.css">
+</head>
+<body>
+<header>
+    <h1>🚨 Threat Dashboard</h1>
+    <nav>
+        <a href="/">Home</a>
+        <a href="/comms">Comms</a>
+        <a href="/threats" class="active">Threats</a>
+    </nav>
+</header>
+
+<main>
+    <section class="stats" id="stats"></section>
+
+    <section class="panel">
+        <h2>🎯 Simulate Attacks</h2>
+        <button onclick="simBurst()" class="danger">⚡ Traffic Burst (30 msgs)</button>
+        <button onclick="simReplay()" class="warn">🔁 Replay Last Message</button>
+        <button onclick="simTamper()" class="danger">✂️ Tamper a Message</button>
+        <button onclick="simRecipient()">🎭 Unusual Recipient</button>
+    </section>
+
+    <section class="panel">
+        <h2>📊 Live Threat Feed</h2>
+        <button onclick="loadThreats()">🔄 Refresh</button>
+        <div id="threats" class="log"></div>
+    </section>
+</main>
+
+<script>
+async function loadStats() {
+    const r = await fetch('/api/threats/stats');
+    const s = await r.json();
+    document.getElementById('stats').innerHTML = `
+        <div class="stat"><span>Total</span><strong>${s.total}</strong></div>
+        <div class="stat threat"><span>🔴 Threats</span><strong>${s.threats}</strong></div>
+        <div class="stat suspicious"><span>🟡 Suspicious</span><strong>${s.suspicious}</strong></div>
+        <div class="stat normal"><span>🟢 Normal</span><strong>${s.normal}</strong></div>
+    `;
+}
+
+async function loadThreats() {
+    const r = await fetch('/api/threats/list?limit=50');
+    const data = await r.json();
+    const el = document.getElementById('threats');
+    el.innerHTML = '';
+    if (!data.threats.length) {
+        el.innerHTML = '<p class="muted">No threats detected yet.</p>';
+        return;
+    }
+    data.threats.reverse().forEach(t => {
+        const cls = t.level === 'THREAT' ? 'threat' : t.level === 'SUSPICIOUS' ? 'suspicious' : 'normal';
+        el.innerHTML += `
+            <div class="threat ${cls}">
+                <div class="threat-head">
+                    <span>${t.status} <strong>${t.level}</strong></span>
+                    <span>#${t.message_id} · ${t.sender} → ${t.receiver}</span>
+                    <span class="score">score ${t.ai_score}</span>
+                </div>
+                <div class="threat-label">${t.label}</div>
+                ${t.reasons.map(r => `<div class="reason">• ${r.type}: ${r.detail}</div>`).join('')}
+            </div>`;
+    });
+    loadStats();
+}
+
+async function simBurst() {
+    await fetch('/api/messages/burst?count=30', { method: 'POST' });
+    setTimeout(loadThreats, 500);
+}
+async function simReplay() {
+    await fetch('/api/messages/replay', { method: 'POST' });
+    setTimeout(loadThreats, 300);
+}
+async function simTamper() {
+    await fetch('/api/messages/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            sender: 'charlie', receiver: 'delta',
+            plaintext: 'Compromised transmission test',
+            tamper: true
+        })
+    });
+    setTimeout(loadThreats, 300);
+}
+async function simRecipient() {
+    await fetch('/api/messages/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            sender: 'echo', receiver: 'alpha',
+            plaintext: 'Suspicious cross-unit contact',
+            tamper: false
+        })
+    });
+    setTimeout(loadThreats, 300);
+}
+
+loadThreats();
+setInterval(loadThreats, 4000);
+</script>
+</body>
+</html>

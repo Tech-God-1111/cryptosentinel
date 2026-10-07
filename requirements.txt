@@ -1,0 +1,19 @@
+# ============================================================
+# CRYPTOSENTINEL — Requirements
+# Secure Military Comms with AI Anomaly Detection
+# ============================================================
+
+# ---------- Web framework ----------
+fastapi==0.110.1
+uvicorn==0.25.0
+python-multipart==0.0.32
+
+# ---------- Cryptography ----------
+cryptography==42.0.5
+
+# ---------- AI / Anomaly Detection ----------
+scikit-learn==1.4.2
+numpy==2.5.2
+
+# ---------- Utilities ----------
+pydantic==2.13.5

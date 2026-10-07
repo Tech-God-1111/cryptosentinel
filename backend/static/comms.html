@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CRYPTOSENTINEL — Comms</title>
+<link rel="stylesheet" href="/static/assets/style.css">
+</head>
+<body>
+<header>
+    <h1>📡 Secure Comms</h1>
+    <nav>
+        <a href="/">Home</a>
+        <a href="/comms" class="active">Comms</a>
+        <a href="/threats">Threats</a>
+    </nav>
+</header>
+
+<main class="grid">
+    <section class="panel">
+        <h2>✉️ Send Encrypted Message</h2>
+        <label>Sender</label>
+        <select id="sender"></select>
+
+        <label>Receiver</label>
+        <select id="receiver"></select>
+
+        <label>Message</label>
+        <textarea id="plaintext" rows="4" placeholder="Enter classified message..."></textarea>
+
+        <label class="checkbox">
+            <input type="checkbox" id="tamper">
+            Simulate tampering (flip ciphertext byte)
+        </label>
+
+        <button onclick="sendMessage()">🔐 Encrypt & Send</button>
+        <p id="send-status" class="status"></p>
+    </section>
+
+    <section class="panel">
+        <h2>📬 Encrypted Message Log</h2>
+        <button onclick="loadMessages()">🔄 Refresh</button>
+        <button onclick="clearAll()" class="danger">🗑️ Clear All</button>
+        <div id="messages" class="log"></div>
+    </section>
+</main>
+
+<script>
+let units = [];
+
+async function loadUnits() {
+    const r = await fetch('/api/messages/units');
+    const data = await r.json();
+    units = data.units;
+    const s = document.getElementById('sender');
+    const rc = document.getElementById('receiver');
+    s.innerHTML = ''; rc.innerHTML = '';
+    units.forEach(u => {
+        s.innerHTML += `<option value="${u.id}">${u.emoji} ${u.callsign}</option>`;
+        rc.innerHTML += `<option value="${u.id}">${u.emoji} ${u.callsign}</option>`;
+    });
+    rc.selectedIndex = 1;
+}
+
+async function sendMessage() {
+    const sender = document.getElementById('sender').value;
+    const receiver = document.getElementById('receiver').value;
+    const plaintext = document.getElementById('plaintext').value.trim();
+    const tamper = document.getElementById('tamper').checked;
+    const status = document.getElementById('send-status');
+
+    if (!plaintext) { status.textContent = '⚠️ Enter a message'; return; }
+
+    const r = await fetch('/api/messages/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sender, receiver, plaintext, tamper })
+    });
+    const data = await r.json();
+    status.textContent = `${data.detection.status} ${data.detection.level}`;
+    document.getElementById('plaintext').value = '';
+    document.getElementById('tamper').checked = false;
+    loadMessages();
+}
+
+async function loadMessages() {
+    const r = await fetch('/api/messages/list?limit=40');
+    const data = await r.json();
+    const el = document.getElementById('messages');
+    el.innerHTML = '';
+    data.messages.reverse().forEach(m => {
+        el.innerHTML += `
+            <div class="msg">
+                <span>#${m.id}</span>
+                <strong>${m.sender} → ${m.receiver}</strong>
+                <code>${m.ciphertext.slice(0, 32)}…</code>
+                <span class="size">${m.ciphertext_size}B</span>
+            </div>`;
+    });
+}
+
+async function clearAll() {
+    if (!confirm('Clear all messages and threats?')) return;
+    await fetch('/api/messages/clear', { method: 'DELETE' });
+    loadMessages();
+}
+
+loadUnits();
+loadMessages();
+setInterval(loadMessages, 4000);
+</script>
+</body>
+</html>

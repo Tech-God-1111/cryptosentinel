@@ -1,0 +1,31 @@
+cryptosentinel/
+│
+├── backend/
+│   ├── app.py                     # FastAPI server (port 8005)
+│   ├── requirements.txt
+│   │
+│   ├── core/
+│   │   ├── __init__.py
+│   │   ├── config.py              # Keys, thresholds, settings
+│   │   ├── crypto_engine.py       # AES-256 encryption/decryption
+│   │   ├── message_store.py       # In-memory message log
+│   │   ├── threat_detector.py     # Isolation Forest anomaly detection
+│   │   └── threat_logger.py       # Persist threats to JSON
+│   │
+│   ├── routes/
+│   │   ├── __init__.py
+│   │   ├── messages.py            # /api/messages/*
+│   │   └── threats.py             # /api/threats/*
+│   │
+│   └── static/
+│       ├── index.html             # Landing
+│       ├── comms.html             # Send/receive UI
+│       ├── threats.html           # Threat dashboard
+│       └── assets/
+│           └── style.css
+│
+├── logs/
+│   ├── messages.json              # Encrypted message log
+│   └── threats.json               # Detected threats
+├── run.py
+└── README.md
