@@ -122,7 +122,7 @@ button.warn:hover { background: #e3b341; }
 
 .log {
     margin-top: 16px;
-    max-height: 480px;
+    max-height: 520px;
     overflow-y: auto;
     font-size: 12px;
 }
@@ -168,9 +168,45 @@ button.warn:hover { background: #e3b341; }
 .threat.suspicious { border-left-color: #e3b341; }
 .threat.normal { border-left-color: #7ee787; }
 
-.threat-head { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px; }
+.threat-head {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    margin-bottom: 6px;
+}
 .threat-label { color: #c9d1d9; font-size: 13px; margin-bottom: 4px; }
 .reason { color: #8b949e; font-size: 11px; padding-left: 8px; }
 .score { color: #6e7681; font-family: monospace; }
 
 .muted { color: #6e7681; font-style: italic; }
+
+/* ============================================================ */
+/* AI ANALYST BLOCK                                              */
+/* ============================================================ */
+.analyst {
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: rgba(31, 111, 235, 0.08);
+    border-left: 2px solid #1f6feb;
+    border-radius: 4px;
+    font-size: 12px;
+}
+.analyst-head {
+    color: #58a6ff;
+    font-weight: 600;
+    margin-bottom: 6px;
+    letter-spacing: 0.5px;
+    font-size: 12px;
+}
+.analyst-reason {
+    color: #c9d1d9;
+    margin-bottom: 6px;
+    line-height: 1.5;
+    font-size: 12px;
+}
+.analyst-meta {
+    color: #8b949e;
+    font-size: 11px;
+    font-family: monospace;
+    letter-spacing: 0.3px;
+}

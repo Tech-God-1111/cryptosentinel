@@ -1,9 +1,21 @@
-.venv/
-venv/
+# Environment
+.env
+backend/.env
+*.env
+
+# Python
 __pycache__/
 *.pyc
 *.pyo
-logs/
+.venv/
+venv/
+
+# Logs
+logs/*.json
+
+# Models
+models/
+
+# IDE
 .idea/
-*.env
-.env
+.vscode/

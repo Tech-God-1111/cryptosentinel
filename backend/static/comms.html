@@ -19,10 +19,10 @@
     <section class="panel">
         <h2>✉️ Send Encrypted Message</h2>
         <label>Sender</label>
-        <select id="sender"></select>
+        <select id="sender"><option>Loading...</option></select>
 
         <label>Receiver</label>
-        <select id="receiver"></select>
+        <select id="receiver"><option>Loading...</option></select>
 
         <label>Message</label>
         <textarea id="plaintext" rows="4" placeholder="Enter classified message..."></textarea>
@@ -48,17 +48,47 @@
 let units = [];
 
 async function loadUnits() {
-    const r = await fetch('/api/messages/units');
-    const data = await r.json();
-    units = data.units;
-    const s = document.getElementById('sender');
-    const rc = document.getElementById('receiver');
-    s.innerHTML = ''; rc.innerHTML = '';
-    units.forEach(u => {
-        s.innerHTML += `<option value="${u.id}">${u.emoji} ${u.callsign}</option>`;
-        rc.innerHTML += `<option value="${u.id}">${u.emoji} ${u.callsign}</option>`;
-    });
-    rc.selectedIndex = 1;
+    console.log("[loadUnits] Fetching /api/messages/units...");
+    try {
+        const r = await fetch('/api/messages/units');
+        console.log("[loadUnits] HTTP status:", r.status);
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const data = await r.json();
+        console.log("[loadUnits] Response:", data);
+
+        units = data.units || [];
+        console.log("[loadUnits] Units count:", units.length);
+
+        const s = document.getElementById('sender');
+        const rc = document.getElementById('receiver');
+
+        if (!s || !rc) {
+            console.error("[loadUnits] Dropdown elements not found!");
+            return;
+        }
+
+        s.innerHTML = '';
+        rc.innerHTML = '';
+
+        units.forEach(u => {
+            const optS = document.createElement('option');
+            optS.value = u.id;
+            optS.textContent = `${u.emoji} ${u.callsign}`;
+            s.appendChild(optS);
+
+            const optR = document.createElement('option');
+            optR.value = u.id;
+            optR.textContent = `${u.emoji} ${u.callsign}`;
+            rc.appendChild(optR);
+        });
+
+        if (rc.options.length > 1) rc.selectedIndex = 1;
+        console.log("[loadUnits] ✅ Dropdowns populated");
+    } catch (e) {
+        console.error("[loadUnits] ❌ Error:", e);
+        document.getElementById('sender').innerHTML = '<option>Error loading units</option>';
+        document.getElementById('receiver').innerHTML = '<option>Error loading units</option>';
+    }
 }
 
 async function sendMessage() {
@@ -68,34 +98,56 @@ async function sendMessage() {
     const tamper = document.getElementById('tamper').checked;
     const status = document.getElementById('send-status');
 
-    if (!plaintext) { status.textContent = '⚠️ Enter a message'; return; }
+    console.log("[send] Sending:", { sender, receiver, tamper });
 
-    const r = await fetch('/api/messages/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sender, receiver, plaintext, tamper })
-    });
-    const data = await r.json();
-    status.textContent = `${data.detection.status} ${data.detection.level}`;
-    document.getElementById('plaintext').value = '';
-    document.getElementById('tamper').checked = false;
-    loadMessages();
+    if (!plaintext) { status.textContent = '⚠️ Enter a message'; return; }
+    if (!sender || !receiver) { status.textContent = '⚠️ Pick sender and receiver'; return; }
+
+    try {
+        const r = await fetch('/api/messages/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sender, receiver, plaintext, tamper })
+        });
+
+        if (!r.ok) {
+            const err = await r.text();
+            console.error("[send] Error:", r.status, err);
+            status.textContent = `❌ ${r.status}: ${err}`;
+            return;
+        }
+
+        const data = await r.json();
+        status.textContent = `${data.detection.status} ${data.detection.level}`;
+        document.getElementById('plaintext').value = '';
+        document.getElementById('tamper').checked = false;
+        loadMessages();
+    } catch (e) {
+        console.error("[send] Exception:", e);
+        status.textContent = `❌ ${e.message}`;
+    }
 }
 
 async function loadMessages() {
-    const r = await fetch('/api/messages/list?limit=40');
-    const data = await r.json();
-    const el = document.getElementById('messages');
-    el.innerHTML = '';
-    data.messages.reverse().forEach(m => {
-        el.innerHTML += `
-            <div class="msg">
+    try {
+        const r = await fetch('/api/messages/list?limit=40');
+        const data = await r.json();
+        const el = document.getElementById('messages');
+        el.innerHTML = '';
+        (data.messages || []).reverse().forEach(m => {
+            const div = document.createElement('div');
+            div.className = 'msg';
+            div.innerHTML = `
                 <span>#${m.id}</span>
                 <strong>${m.sender} → ${m.receiver}</strong>
                 <code>${m.ciphertext.slice(0, 32)}…</code>
                 <span class="size">${m.ciphertext_size}B</span>
-            </div>`;
-    });
+            `;
+            el.appendChild(div);
+        });
+    } catch (e) {
+        console.error("[loadMessages] Error:", e);
+    }
 }
 
 async function clearAll() {
@@ -104,6 +156,8 @@ async function clearAll() {
     loadMessages();
 }
 
+// ---- Page load ----
+console.log("[init] Starting page setup...");
 loadUnits();
 loadMessages();
 setInterval(loadMessages, 4000);

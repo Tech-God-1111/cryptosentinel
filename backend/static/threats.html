@@ -50,12 +50,32 @@ async function loadThreats() {
     const data = await r.json();
     const el = document.getElementById('threats');
     el.innerHTML = '';
+
     if (!data.threats.length) {
         el.innerHTML = '<p class="muted">No threats detected yet.</p>';
         return;
     }
+
     data.threats.reverse().forEach(t => {
-        const cls = t.level === 'THREAT' ? 'threat' : t.level === 'SUSPICIOUS' ? 'suspicious' : 'normal';
+        const cls = t.level === 'THREAT' ? 'threat'
+                  : t.level === 'SUSPICIOUS' ? 'suspicious'
+                  : 'normal';
+
+        const reasonsHtml = (t.reasons || [])
+            .map(r => `<div class="reason">• ${r.type}: ${r.detail}</div>`)
+            .join('');
+
+        const analystHtml = t.analyst ? `
+            <div class="analyst">
+                <div class="analyst-head">🤖 AI Analyst</div>
+                <div class="analyst-reason">${t.analyst.reason}</div>
+                <div class="analyst-meta">
+                    Confidence: ${(t.analyst.confidence * 100).toFixed(0)}% ·
+                    Action: ${t.analyst.recommended_action}
+                </div>
+            </div>
+        ` : '';
+
         el.innerHTML += `
             <div class="threat ${cls}">
                 <div class="threat-head">
@@ -64,20 +84,24 @@ async function loadThreats() {
                     <span class="score">score ${t.ai_score}</span>
                 </div>
                 <div class="threat-label">${t.label}</div>
-                ${t.reasons.map(r => `<div class="reason">• ${r.type}: ${r.detail}</div>`).join('')}
+                ${reasonsHtml}
+                ${analystHtml}
             </div>`;
     });
+
     loadStats();
 }
 
 async function simBurst() {
     await fetch('/api/messages/burst?count=30', { method: 'POST' });
-    setTimeout(loadThreats, 500);
+    setTimeout(loadThreats, 800);
 }
+
 async function simReplay() {
     await fetch('/api/messages/replay', { method: 'POST' });
-    setTimeout(loadThreats, 300);
+    setTimeout(loadThreats, 800);
 }
+
 async function simTamper() {
     await fetch('/api/messages/send', {
         method: 'POST',
@@ -88,8 +112,9 @@ async function simTamper() {
             tamper: true
         })
     });
-    setTimeout(loadThreats, 300);
+    setTimeout(loadThreats, 800);
 }
+
 async function simRecipient() {
     await fetch('/api/messages/send', {
         method: 'POST',
@@ -100,7 +125,7 @@ async function simRecipient() {
             tamper: false
         })
     });
-    setTimeout(loadThreats, 300);
+    setTimeout(loadThreats, 800);
 }
 
 loadThreats();
